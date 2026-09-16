@@ -20,7 +20,7 @@
       return;
     }
 
-    root.querySelector('.mph-v')?.replaceChildren(document.createTextNode('v5.2'));
+    root.querySelector('.mph-v')?.replaceChildren(document.createTextNode('v6'));
     buildUI(root, hint);
     injectScannerModule();
     wireScannerMessages(root, stage, image, svg);
@@ -48,7 +48,7 @@
     status.className = 'mph-autotrace-status';
     row.insertAdjacentElement('afterend', status);
 
-    button.addEventListener('click', () => scanReference(root, false));
+    button.addEventListener('click', () => scanReference(root));
   }
 
   function injectScannerModule() {
