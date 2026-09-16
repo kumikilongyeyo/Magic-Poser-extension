@@ -4,9 +4,9 @@ A Chrome extension prototype for **reference-to-pose assistance in Magic Poser**
 
 The current approach deliberately avoids depending on Magic Poser's hidden/private rig internals. Instead, it uses a **visual control map**: the user maps the important visible Magic Poser body controls once, then the extension can drive those controls from a reference skeleton.
 
-## Current milestone — v0.4
+## Current milestone — v0.4.1
 
-This is the first working baseline where **Match Pose can physically move the Magic Poser character**.
+This is the first working baseline where **Match Pose can physically move the Magic Poser character**, with a much better tracing/editing pass.
 
 ### Current workflow
 
@@ -28,19 +28,46 @@ The normal UI intentionally stays small:
 - Whole / Upper / Lower
 - Keep Feet
 - Mirror
-- Undo
+- Undo / Redo
 - Natural-language quick fixes
 
 Advanced rig mapping is hidden under **Advanced**.
 
-## Known UX issues / next priorities
+### v0.4.1 UX improvements
 
-- Make the reference/trace panel resizable or provide an expanded tracing mode.
-- Add Redo beside Undo.
-- Clearly highlight which skeleton joint is currently selected/being dragged.
-- Improve tracing precision and reference zoom/pan.
-- Improve pose accuracy beyond the current screen-space approximation.
-- Add automatic pose landmark extraction so manual tracing becomes optional.
+- **Expandable tracing mode** from the header.
+- Drag the **bottom-right corner of the reference stage** to resize the tracing area precisely.
+- **Redo** added beside Undo for applied Magic Poser control history.
+- The currently selected skeleton joint gets a **bright selection ring + readable joint name**.
+- During Magic Poser control mapping, every accepted click shows a short **confirmation badge**.
+- Custom reference size is saved locally.
+
+## Next major feature — Auto Trace / Smart Scan
+
+Manual tracing should become optional.
+
+Planned flow:
+
+```text
+Paste / upload reference
+        ↓
+Auto Trace
+        ↓
+pose detector estimates body landmarks
+        ↓
+helper maps them onto the editable stickman
+        ↓
+user only corrects uncertain joints
+        ↓
+Match Pose
+```
+
+Recommended architecture:
+
+- **Browser-first scanner:** MediaPipe Pose Landmarker Heavy for fast local pose extraction.
+- **Precision scanner:** RTMW3D / RTMW whole-body ONNX as an optional higher-accuracy engine for difficult references.
+- Confidence-aware fitting: low-confidence or occluded joints should not overwrite a good manual position.
+- The editable stickman remains the correction layer, so the scanner never needs to be perfect.
 
 ## Architecture
 
@@ -60,7 +87,7 @@ Magic Poser character
 
 ### Why visual control mapping?
 
-Earlier prototypes tried to connect to Magic Poser's internal WASM/rig runtime. That path proved fragile across the live web app. v0.4 instead maps the controls that are already visible on screen, making the extension less dependent on undocumented internals.
+Earlier prototypes tried to connect to Magic Poser's internal WASM/rig runtime. That path proved fragile across the live web app. v0.4+ instead maps the controls that are already visible on screen, making the extension less dependent on undocumented internals.
 
 ## Install locally
 
@@ -73,4 +100,4 @@ Earlier prototypes tried to connect to Magic Poser's internal WASM/rig runtime. 
 
 ## Status
 
-Early prototype / active development. The visual driver works, but pose matching is still approximate and the UX is being refined.
+Early prototype / active development. The visual driver works, but pose matching is still approximate. The next focus is automatic pose extraction plus better correction passes.
