@@ -1,18 +1,51 @@
 {
   "manifest_version": 3,
   "name": "Magic Poser Helper",
-  "version": "0.4.1",
-  "description": "Minimal reference-to-pose helper for Magic Poser using visible control mapping instead of fragile internal rig hooks.",
-  "permissions": ["storage", "activeTab"],
-  "host_permissions": ["https://webapp.magicposer.com/*"],
-  "background": {"service_worker": "background.js", "type": "module"},
-  "action": {"default_title": "Magic Poser Helper", "default_popup": "popup/popup.html"},
+  "version": "0.5.0",
+  "description": "Reference-to-pose helper for Magic Poser with visual control mapping and automatic AI pose tracing.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://webapp.magicposer.com/*",
+    "https://cdn.jsdelivr.net/*",
+    "https://storage.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Magic Poser Helper",
+    "default_popup": "popup/popup.html"
+  },
   "content_scripts": [
     {
-      "matches": ["https://webapp.magicposer.com/*"],
-      "js": ["engines/pose-engine.js", "engines/visual-driver.js", "content/content.js"],
-      "css": ["content/content.css"],
+      "matches": [
+        "https://webapp.magicposer.com/*"
+      ],
+      "js": [
+        "engines/pose-engine.js",
+        "engines/visual-driver.js",
+        "content/content.js",
+        "scanner/autotrace-content.js"
+      ],
+      "css": [
+        "content/content.css",
+        "scanner/autotrace.css"
+      ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "scanner/pose-scanner.mjs"
+      ],
+      "matches": [
+        "https://webapp.magicposer.com/*"
+      ]
     }
   ]
 }
