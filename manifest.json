@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Magic Poser Helper",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "description": "Reference-to-pose helper for Magic Poser with visual control mapping and automatic AI pose tracing.",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://webapp.magicposer.com/*", "https://cdn.jsdelivr.net/*", "https://storage.googleapis.com/*"],
