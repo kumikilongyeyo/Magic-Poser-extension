@@ -2,62 +2,57 @@
 
 Chrome extension prototype for **reference-to-pose assistance in Magic Poser**.
 
-## Current milestone — v0.5.2
+## Current milestone — v0.6
 
-The extension has two separate jobs:
+The UI is intentionally reduced to the actual workflow:
 
-1. **Auto Trace** reads a pasted/uploaded reference and places the editable stickman over the person.
-2. **Match Pose** drives Magic Poser's visible 3D body controls toward that corrected stickman.
+**Reference → Auto Trace → Match Pose**
 
-The current visual driver still needs a one-time **3D Model Controls** map for the current mannequin/camera framing. This is a required step, so v0.5.2 moves it out of Advanced and makes it visible in the normal workflow.
+### Normal workflow
 
-## Normal workflow
-
-1. Press **Map Controls** and click each requested black Magic Poser control on the mannequin.
-2. Paste or upload a reference.
-3. Press **Auto Trace**. It does not run automatically.
-4. Drag any stickman joint that the scan got wrong. Yellow joints are lower-confidence detections worth checking.
+1. If this mannequin/view has not been mapped yet, press **Map Model** once and click the requested visible black controls on the Magic Poser figure.
+2. Paste or upload a pose reference.
+3. Press **Auto Trace** to place the editable stickman over the person.
+4. Drag any stickman joint that looks wrong.
 5. Press **Match Pose**.
-6. Adjust the reference skeleton and press Match Pose again if needed.
 
-If you move/zoom the Magic Poser camera or change the mannequin framing, press **Remap** before matching again because the visual driver stores those control positions in screen space.
+After setup, the mapping card collapses into a small **Model Ready** status. Secondary controls are hidden under **Pose Options**.
 
-### Current visible controls
+## Auto Trace
 
-- Paste / Upload / Sketch
-- Auto Trace
-- Map Controls / Remap
-- Match Pose
+Auto Trace uses MediaPipe Pose Landmarker Heavy as a fast browser-side first pass. It reduces the detector output to the helper's deliberately small 13-joint correction skeleton: head, chest, pelvis, shoulders, elbows, wrists, knees and ankles.
+
+It only runs when you press **Auto Trace**. The AI result is never final: the editable stickman remains the correction layer.
+
+## Model-control sync
+
+The visual driver stores the locations of Magic Poser's visible controls. v0.6 now attempts to refresh those locations from the Magic Poser canvas before every Match Pose using compact dark-control detection.
+
+This means modest pose/camera changes should no longer immediately invalidate the saved map. If the controls moved too far for a safe automatic refresh, the helper asks for **Remap** instead of silently doing nothing.
+
+Manual Map Model remains the reliable fallback.
+
+## Pose Options
+
+Hidden by default to keep the panel clean:
+
 - Loose / Close / Strict
 - Whole / Upper / Lower
 - Keep Feet
 - Mirror
 - Undo / Redo
-
-The old natural-language pose box was removed from the main UI because spatial pose editing is faster and clearer by directly dragging the reference skeleton.
-
-## Guided 3D control mapping
-
-Mapping is no longer hidden under Advanced. Starting Map Controls collapses the large helper body out of the way and shows a small floating instruction telling you exactly which mannequin control to click next. Each accepted control gets a visual confirmation. Esc cancels mapping.
-
-## Auto Trace
-
-Auto Trace uses **MediaPipe Pose Landmarker Heavy** to estimate body landmarks and reduces them to the helper's intentionally small 13-joint skeleton: head, chest, pelvis, shoulders, elbows, wrists, knees and ankles.
-
-The editable stickman remains the correction layer. AI detection is only a first pass; it never needs to be perfect.
-
-For this prototype, MediaPipe runtime/model assets are loaded on demand from pinned CDN/model URLs. A future packaged release should vendor runtime assets locally.
+- Reset Model Mapping
 
 ## Architecture
 
 ```text
 Reference image
       ↓
-Auto Trace (MediaPipe Heavy)
+Auto Trace
       ↓
-Editable 13-joint stickman
+Editable stickman
       ↓
-Saved visible Magic Poser control map
+Saved / refreshed Magic Poser control map
       ↓
 Canvas control dragging
       ↓
@@ -72,7 +67,3 @@ Magic Poser character
 4. Choose **Load unpacked**.
 5. Select this repository folder.
 6. Open `https://webapp.magicposer.com/`.
-
-## Next major improvement
-
-Automatically detect/refresh Magic Poser's visible black control dots before Match Pose so manual Map Controls becomes a fallback instead of a required step.
