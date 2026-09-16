@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Magic Poser Helper",
-  "version": "0.5.2",
-  "description": "Reference-to-pose helper for Magic Poser with visual control mapping and automatic AI pose tracing.",
+  "version": "0.6.0",
+  "description": "Reference-to-pose helper for Magic Poser with visual control mapping, AI auto trace, and automatic model-control refresh.",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://webapp.magicposer.com/*", "https://cdn.jsdelivr.net/*", "https://storage.googleapis.com/*"],
   "background": {"service_worker": "background.js", "type": "module"},
   "action": {"default_title": "Magic Poser Helper", "default_popup": "popup/popup.html"},
   "content_scripts": [{
     "matches": ["https://webapp.magicposer.com/*"],
-    "js": ["engines/pose-engine.js", "engines/visual-driver.js", "content/content.js", "scanner/autotrace-content.js"],
+    "js": ["engines/pose-engine.js", "engines/visual-driver.js", "engines/control-scanner.js", "content/content.js", "scanner/autotrace-content.js"],
     "css": ["content/content.css", "scanner/autotrace.css"],
     "run_at": "document_idle"
   }],
