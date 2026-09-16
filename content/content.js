@@ -22,7 +22,7 @@
   const root=document.createElement('div');root.id='mph-root';root.innerHTML=`
   <section id="mph-panel">
     <header class="mph-bar">
-      <div><div class="mph-title">Magic Poser Helper <span class="mph-v">v5.2</span></div><div id="mph-sub" class="mph-sub">Visual control driver</div></div>
+      <div><div class="mph-title">Magic Poser Helper <span class="mph-v">v6</span></div><div id="mph-sub" class="mph-sub">Visual control driver</div></div>
       <div class="mph-head"><button id="mph-expand" title="Expand tracing">⛶</button><button id="mph-collapse">–</button><button id="mph-close">×</button></div>
     </header>
     <div id="mph-body" class="mph-body">
@@ -38,33 +38,29 @@
       <input id="mph-file" type="file" accept="image/*" hidden/>
       <div id="mph-hint" class="mph-hint">Tip: the skeleton is your correction layer — rough placement is enough.</div>
 
-      <div class="mph-rowline"><span>Match</span><div class="mph-seg"><button data-strength="loose">Loose</button><button data-strength="close" class="active">Close</button><button data-strength="strict">Strict</button></div></div>
-      <div class="mph-rowline"><span>Apply</span><div class="mph-seg"><button data-scope="whole" class="active">Whole</button><button data-scope="upper">Upper</button><button data-scope="lower">Lower</button></div></div>
-
-      <div id="mph-map-card" class="mph-map-card">
-        <div class="mph-map-copy">
-          <strong>3D Model Controls</strong>
-          <span id="mph-map-state">Required before Match Pose</span>
-        </div>
-        <button id="mph-setup-main" class="mph-map-button">Map Controls</button>
+      <div id="mph-model-setup" class="mph-setup-callout">
+        <div><strong>One-time model setup</strong><span>Map the visible black controls so Match Pose can move the mannequin.</span></div>
+        <button id="mph-setup-main">Map Model</button>
       </div>
-      <div class="mph-map-note">Remap only if you move/zoom the Magic Poser camera or change the model framing.</div>
+      <div id="mph-model-ready" class="mph-model-ready" hidden><span>● Model Ready</span><button id="mph-remap-small">Remap</button></div>
 
-      <div class="mph-quick mph-quick-4"><button id="mph-feet">Keep Feet</button><button id="mph-mirror">Mirror</button><button id="mph-undo">Undo</button><button id="mph-redo">Redo</button></div>
-      <button id="mph-match" class="mph-primary">Match Pose</button>
+      <button id="mph-match" class="mph-primary mph-primary-big">Match Pose</button>
 
-      <details id="mph-advanced"><summary>Advanced</summary>
-        <div class="mph-advanced-inner">
-          <button id="mph-clear-map" class="mph-soft">Clear Saved Mapping</button>
-          <div id="mph-map-info" class="mph-mini"></div>
+      <details id="mph-options" class="mph-options">
+        <summary>Pose Options</summary>
+        <div class="mph-options-inner">
+          <div class="mph-rowline"><span>Match</span><div class="mph-seg"><button data-strength="loose">Loose</button><button data-strength="close" class="active">Close</button><button data-strength="strict">Strict</button></div></div>
+          <div class="mph-rowline"><span>Apply</span><div class="mph-seg"><button data-scope="whole" class="active">Whole</button><button data-scope="upper">Upper</button><button data-scope="lower">Lower</button></div></div>
+          <div class="mph-quick mph-quick-4"><button id="mph-feet">Keep Feet</button><button id="mph-mirror">Mirror</button><button id="mph-undo">Undo</button><button id="mph-redo">Redo</button></div>
+          <button id="mph-clear-map" class="mph-soft">Reset Model Mapping</button>
         </div>
       </details>
       <div id="mph-status" class="mph-status"></div>
-      <div id="mph-map-overlay" class="mph-map-overlay" hidden>
-        <div class="mph-map-overlay-step" id="mph-map-overlay-step">1 / 13</div>
-        <strong id="mph-map-overlay-target">Click Pelvis</strong>
-        <span>Click the requested black control directly on the 3D mannequin. Esc cancels.</span>
-      </div>
+    </div>
+    <div id="mph-map-overlay" class="mph-map-overlay" hidden>
+      <div class="mph-map-overlay-step" id="mph-map-overlay-step">1 / 13</div>
+      <strong id="mph-map-overlay-target">Click Pelvis</strong>
+      <span>Click the requested black control directly on the 3D mannequin. Esc cancels.</span>
     </div>
   </section>`;
   document.documentElement.appendChild(root);
@@ -95,6 +91,7 @@
     $('#mph-redo').onclick=redo;
     $('#mph-match').onclick=matchPose;
     $('#mph-setup-main').onclick=startMapping;
+    $('#mph-remap-small').onclick=startMapping;
     $('#mph-clear-map').onclick=async()=>{state.rig={};await chrome.storage.local.remove('mphRigV4');state.status='Saved mapping cleared.';render();};
     file.onchange=async e=>{const f=e.target.files?.[0];if(f)await loadImageFile(f);};
     stage.addEventListener('dblclick',()=>{if(state.mode==='upload')file.click();});
@@ -136,18 +133,48 @@
     bar.addEventListener('pointerup',async()=>{if(moving){moving=false;await chrome.storage.local.set({mphPanelPosV4:state.panelPos});}});
   }
 
-  function toggleExpanded(){state.expanded=!state.expanded;render();requestAnimationFrame(clampPanelIntoViewport);}
-  function clampPanelIntoViewport(){const r=panel.getBoundingClientRect();let x=r.left,y=r.top;if(r.right>innerWidth-4)x=Math.max(4,innerWidth-r.width-4);if(r.bottom>innerHeight-4)y=Math.max(4,innerHeight-r.height-4);if(x<4)x=4;if(y<4)y=4;panel.style.left=x+'px';panel.style.top=y+'px';panel.style.right='auto';state.panelPos={x,y};}
+  function toggleExpanded(){
+    state.expanded=!state.expanded;
+    render();
+    requestAnimationFrame(clampPanelIntoViewport);
+  }
+
+  function clampPanelIntoViewport(){
+    const r=panel.getBoundingClientRect();
+    let x=r.left,y=r.top;
+    if(r.right>innerWidth-4)x=Math.max(4,innerWidth-r.width-4);
+    if(r.bottom>innerHeight-4)y=Math.max(4,innerHeight-r.height-4);
+    if(x<4)x=4;if(y<4)y=4;
+    panel.style.left=x+'px';panel.style.top=y+'px';panel.style.right='auto';
+    state.panelPos={x,y};
+  }
 
   function wireStageResize(){
     const handle=$('#mph-stage-resize');let resizing=false,sx=0,sy=0,sw=0,sh=0;
-    handle.addEventListener('pointerdown',e=>{resizing=true;state.expanded=false;sx=e.clientX;sy=e.clientY;sw=panel.getBoundingClientRect().width;sh=stage.getBoundingClientRect().height;handle.setPointerCapture?.(e.pointerId);e.preventDefault();e.stopPropagation();});
-    handle.addEventListener('pointermove',e=>{if(!resizing)return;const maxW=Math.max(306,innerWidth-16),maxH=Math.max(174,innerHeight-250);const w=Math.max(306,Math.min(maxW,sw+(e.clientX-sx)));const h=Math.max(174,Math.min(maxH,sh+(e.clientY-sy)));state.panelSize={w,h};panel.style.width=w+'px';stage.style.height=h+'px';clampPanelIntoViewport();});
-    handle.addEventListener('pointerup',async()=>{if(!resizing)return;resizing=false;await chrome.storage.local.set({mphPanelSizeV4:state.panelSize,mphPanelPosV4:state.panelPos});render();});
+    handle.addEventListener('pointerdown',e=>{
+      resizing=true;state.expanded=false;sx=e.clientX;sy=e.clientY;sw=panel.getBoundingClientRect().width;sh=stage.getBoundingClientRect().height;
+      handle.setPointerCapture?.(e.pointerId);e.preventDefault();e.stopPropagation();
+    });
+    handle.addEventListener('pointermove',e=>{
+      if(!resizing)return;
+      const maxW=Math.max(306,innerWidth-16),maxH=Math.max(174,innerHeight-250);
+      const w=Math.max(306,Math.min(maxW,sw+(e.clientX-sx)));
+      const h=Math.max(174,Math.min(maxH,sh+(e.clientY-sy)));
+      state.panelSize={w,h};panel.style.width=w+'px';stage.style.height=h+'px';
+      clampPanelIntoViewport();
+    });
+    handle.addEventListener('pointerup',async()=>{
+      if(!resizing)return;resizing=false;
+      await chrome.storage.local.set({mphPanelSizeV4:state.panelSize,mphPanelPosV4:state.panelPos});
+      render();
+    });
     handle.addEventListener('pointercancel',()=>resizing=false);
   }
 
-  function flashMapPoint(x,y,label){const el=document.createElement('div');el.className='mph-map-flash';el.textContent='✓ '+label;el.style.left=x+'px';el.style.top=y+'px';root.appendChild(el);setTimeout(()=>el.remove(),850);}
+  function flashMapPoint(x,y,label){
+    const el=document.createElement('div');el.className='mph-map-flash';el.textContent='✓ '+label;el.style.left=x+'px';el.style.top=y+'px';root.appendChild(el);
+    setTimeout(()=>el.remove(),850);
+  }
 
   function wireMappingCapture(){
     document.addEventListener('pointerdown',async e=>{
@@ -158,30 +185,90 @@
       state.rig[step[0]]={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
       flashMapPoint(e.clientX,e.clientY,pretty(step[0]));
       state.mapIndex++;
-      if(state.mapIndex>=SETUP.length){state.mapping=false;state.collapsed=state.preMapCollapsed;await chrome.storage.local.set({mphRigV4:state.rig});state.status='3D controls mapped ✓ Now press Match Pose.';}
-      else state.status=`Mapping ${state.mapIndex+1}/${SETUP.length}: click ${SETUP[state.mapIndex][1]}.`;
+      if(state.mapIndex>=SETUP.length){
+        state.mapping=false;
+        state.collapsed=state.preMapCollapsed;
+        await chrome.storage.local.set({mphRigV4:state.rig});
+        state.status='3D controls mapped ✓ Now press Match Pose.';
+      } else {
+        state.status=`Mapping ${state.mapIndex+1}/${SETUP.length}: click ${SETUP[state.mapIndex][1]}.`;
+      }
       render();
     },true);
   }
 
   async function startMapping(){
-    const canvas=Driver.getCanvas();if(!canvas){state.status='Magic Poser canvas not found.';render();return;}
-    state.rig={};state.mapping=true;state.mapIndex=0;state.preMapCollapsed=state.collapsed;state.collapsed=true;state.status=`Mapping 1/${SETUP.length}: click ${SETUP[0][1]}.`;render();
+    const canvas=Driver.getCanvas();
+    if(!canvas){state.status='Magic Poser canvas not found.';render();return;}
+    state.rig={};
+    state.mapping=true;
+    state.mapIndex=0;
+    state.preMapCollapsed=state.collapsed;
+    state.collapsed=true;
+    state.status=`Mapping 1/${SETUP.length}: click ${SETUP[0][1]}.`;
+    render();
   }
 
-  function cancelMapping(){state.mapping=false;state.mapIndex=0;state.rig={};state.collapsed=state.preMapCollapsed;state.status='Mapping cancelled. Map the 3D controls before Match Pose.';render();}
+  function cancelMapping(){
+    state.mapping=false;
+    state.mapIndex=0;
+    state.rig={};
+    state.collapsed=state.preMapCollapsed;
+    state.status='Mapping cancelled. Map the 3D controls before Match Pose.';
+    render();
+  }
 
   async function matchPose(){
     if(state.busy)return;
-    if(Object.keys(state.rig).length<SETUP.length){state.status='Map 3D Controls first — this is required before Match Pose.';$('#mph-map-card').classList.add('attention');setTimeout(()=>$('#mph-map-card')?.classList.remove('attention'),900);render();return;}
-    const canvas=Driver.getCanvas();if(!canvas){state.status='Magic Poser canvas not found.';render();return;}
-    const target=Engine.targetCanvasPoints(state.skeleton,state.rig,canvas.getBoundingClientRect(),state.strength);
-    state.busy=true;render();
-    try{const res=await Driver.apply(state.rig,target,{scope:state.scope,keepFeet:state.keepFeet,strength:state.strength,onProgress:(i,n,name)=>{state.status=`Matching ${i}/${n}: ${pretty(name)}…`;render();}});state.history.push(res.before);if(state.history.length>12)state.history.shift();state.redoHistory=[];await chrome.storage.local.set({mphRigV4:state.rig});state.status=`Matched ${res.count} controls. Adjust the reference skeleton and press Match Pose again if needed.`;}catch(err){state.status=err.message||'Match failed.';}finally{state.busy=false;render();}
+    if(Object.keys(state.rig).length<SETUP.length){
+      state.status='Map the model once before Match Pose.';
+      $('#mph-model-setup').classList.add('attention');
+      setTimeout(()=>$('#mph-model-setup')?.classList.remove('attention'),900);
+      render();return;
+    }
+    const canvas=Driver.getCanvas();
+    if(!canvas){state.status='Magic Poser canvas not found.';render();return;}
+
+    state.busy=true;state.status='Checking model controls…';render();
+    try{
+      const sync=await window.MPHControlScanner?.refresh?.(state.rig);
+      if(sync?.ok && sync.updated>=6){
+        state.rig=sync.rig;
+        await chrome.storage.local.set({mphRigV4:state.rig});
+        state.status=`Model synced · ${sync.updated}/${SETUP.length} controls refreshed.`;
+        render();
+      }else if(sync && sync.candidates>=8 && sync.updated<6){
+        state.status='The model/camera moved too far to sync safely. Press Remap once.';
+        state.busy=false;render();return;
+      }
+
+      const target=Engine.targetCanvasPoints(state.skeleton,state.rig,canvas.getBoundingClientRect(),state.strength);
+      const res=await Driver.apply(state.rig,target,{
+        scope:state.scope,keepFeet:state.keepFeet,strength:state.strength,
+        onProgress:(i,n,name)=>{state.status=`Matching ${i}/${n}: ${pretty(name)}…`;render();}
+      });
+      state.history.push(res.before);if(state.history.length>12)state.history.shift();state.redoHistory=[];
+      await chrome.storage.local.set({mphRigV4:state.rig});
+      state.status=`Pose applied. Adjust the reference skeleton and Match again if needed.`;
+    }catch(err){
+      state.status=err.message||'Match failed.';
+    }finally{
+      state.busy=false;render();
+    }
   }
 
-  async function undo(){if(state.busy||!state.history.length)return;const prev=state.history.pop(),current=JSON.parse(JSON.stringify(state.rig));state.redoHistory.push(current);if(state.redoHistory.length>12)state.redoHistory.shift();state.busy=true;render();try{await Driver.restore(current,prev,{onProgress:(i,n)=>{state.status=`Undo ${i}/${n}…`;render();}});state.rig=prev;await chrome.storage.local.set({mphRigV4:state.rig});state.status='Undone. Redo is available.';}catch(e){state.redoHistory.pop();state.status=e.message;}finally{state.busy=false;render();}}
-  async function redo(){if(state.busy||!state.redoHistory.length)return;const next=state.redoHistory.pop(),current=JSON.parse(JSON.stringify(state.rig));state.history.push(current);if(state.history.length>12)state.history.shift();state.busy=true;render();try{await Driver.restore(current,next,{onProgress:(i,n)=>{state.status=`Redo ${i}/${n}…`;render();}});state.rig=next;await chrome.storage.local.set({mphRigV4:state.rig});state.status='Redone.';}catch(e){state.history.pop();state.redoHistory.push(next);state.status=e.message;}finally{state.busy=false;render();}}
+  async function undo(){
+    if(state.busy||!state.history.length)return;
+    const prev=state.history.pop(),current=JSON.parse(JSON.stringify(state.rig));state.redoHistory.push(current);if(state.redoHistory.length>12)state.redoHistory.shift();state.busy=true;render();
+    try{await Driver.restore(current,prev,{onProgress:(i,n)=>{state.status=`Undo ${i}/${n}…`;render();}});state.rig=prev;await chrome.storage.local.set({mphRigV4:state.rig});state.status='Undone. Redo is available.';}catch(e){state.redoHistory.pop();state.status=e.message;}finally{state.busy=false;render();}
+  }
+
+  async function redo(){
+    if(state.busy||!state.redoHistory.length)return;
+    const next=state.redoHistory.pop(),current=JSON.parse(JSON.stringify(state.rig));state.history.push(current);if(state.history.length>12)state.history.shift();state.busy=true;render();
+    try{await Driver.restore(current,next,{onProgress:(i,n)=>{state.status=`Redo ${i}/${n}…`;render();}});state.rig=next;await chrome.storage.local.set({mphRigV4:state.rig});state.status='Redone.';}catch(e){state.history.pop();state.redoHistory.push(next);state.status=e.message;}finally{state.busy=false;render();}
+  }
+
   function pretty(s){return s.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase());}
 
   function render(){
@@ -192,10 +279,19 @@
     $$('.mph-seg [data-scope]').forEach(b=>b.classList.toggle('active',b.dataset.scope===state.scope));
     $('#mph-feet').classList.toggle('active',state.keepFeet);$('#mph-undo').disabled=state.busy||!state.history.length;$('#mph-redo').disabled=state.busy||!state.redoHistory.length;$('#mph-match').disabled=state.busy;$('#mph-match').textContent=state.busy?'Matching…':'Match Pose';
     const mapped=Object.keys(state.rig).length===SETUP.length;
-    $('#mph-status').textContent=state.status;$('#mph-map-info').textContent=mapped?'✓ 3D control map saved':'No 3D control map yet';$('#mph-map-state').textContent=state.mapping?`Mapping ${state.mapIndex+1}/${SETUP.length}`:(mapped?'Mapped ✓':'Required before Match Pose');$('#mph-setup-main').textContent=state.mapping?'Mapping…':(mapped?'Remap':'Map Controls');$('#mph-setup-main').disabled=state.mapping||state.busy;$('#mph-map-card').classList.toggle('ready',mapped&&!state.mapping);
-    const mo=$('#mph-map-overlay');mo.hidden=!state.mapping;if(state.mapping){$('#mph-map-overlay-step').textContent=`${state.mapIndex+1} / ${SETUP.length}`;$('#mph-map-overlay-target').textContent=`Click ${pretty(SETUP[state.mapIndex][0])}`;}
+    $('#mph-status').textContent=state.status;
+    $('#mph-model-setup').hidden=mapped||state.mapping;
+    $('#mph-model-ready').hidden=!mapped||state.mapping;
+    $('#mph-model-ready span').textContent='● Model Ready';
+
+    const mo=$('#mph-map-overlay');
+    mo.hidden=!state.mapping;
+    if(state.mapping){
+      $('#mph-map-overlay-step').textContent=`${state.mapIndex+1} / ${SETUP.length}`;
+      $('#mph-map-overlay-target').textContent=`Click ${pretty(SETUP[state.mapIndex][0])}`;
+    }
     const jl=$('#mph-joint-label');if(state.selectedJoint&&state.skeleton[state.selectedJoint]){const p=state.skeleton[state.selectedJoint];jl.hidden=false;jl.textContent=pretty(state.selectedJoint);jl.style.left=(p.x*100)+'%';jl.style.top=(p.y*100)+'%';}else jl.hidden=true;
     if(state.mode==='sketch'){img.hidden=true;empty.hidden=true;stage.classList.add('sketch');}else{stage.classList.remove('sketch');img.hidden=!state.reference;empty.hidden=!!state.reference;}
-    $('#mph-sub').textContent=state.mapping?'Mapping 3D controls…':mapped?'Ready · 3D controls mapped':'Step 1 · Map 3D controls';
+    $('#mph-sub').textContent=state.mapping?'Mapping model…':mapped?'Ready':'Needs model setup';
   }
 })();
